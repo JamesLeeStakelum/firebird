@@ -1,0 +1,6 @@
+project_name:word_game
+language:python
+main_file=main.py
+compile:no
+
+

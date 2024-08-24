@@ -1,0 +1,23 @@
+# Firebird Code Generator Configuration File
+
+[Models]
+# Specify the model for each LLM service. If you don't intend to use a model, you may leave the model blank.
+openai     = gpt-4o-mini-2024-07-18
+perplexity = llama-3-sonar-large-32k-chat
+anthropic  = claude-3-haiku-20240307
+gemini     = models/gemini-1.5-flash
+groq       = 
+
+[Preferences]
+# Set the preferred LLM service to use
+preferred_llm = openai
+
+[Logging]
+# Available levels from least to most severe:
+# DEBUG: Detailed information, typically of interest only when diagnosing problems.
+# INFO: Confirmation that things are working as expected.
+# WARNING: An indication that something unexpected happened, or indicative of some problem in the near future.
+# ERROR: Due to a more serious problem, the software has not been able to perform some function.
+# CRITICAL: A serious error, indicating that the program itself may be unable to continue running.
+level = INFO
+
