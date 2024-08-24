@@ -13,6 +13,7 @@ import shutil
 from project_manager import ensure_logs_subfolder_exists, log_request, log_response, upload_project_code_and_docs, create_code_history_backup
 from llm_interaction import get_llm_response
 import configparser
+import re
 
 # Logging handler
 import logging
@@ -78,28 +79,23 @@ def create_app_subfolder(folder_name):
         print(f"Created subfolder: {folder_name}")
     return folder_name
 
+
+
 def parse_llm_response(response, language):
     code_blocks = {}
     doc_blocks = {}
-    file_blocks = {}  # New dictionary to store FILE blocks
+    file_blocks = {}
     
-    while response:
-        start_markers = ['<<<CODE START:', '<<<DOC START:', '<<<FILE START:']
-        start_index = min((response.find(marker) for marker in start_markers if marker in response), default=-1)
-        
-        if start_index == -1:
-            break
-        
-        block_type = response[start_index + 3:start_index + 7]
-        end_marker = f'<<<{block_type} END:'
-        end_index = response.find(end_marker)
-        
-        if end_index == -1:
-            break
-        
-        section = response[start_index:end_index + len(end_marker) + 3]
-        filename = section.split('<<<')[1].split('>>>')[0].replace(f"{block_type} START: ", "").strip()
-        content = section.split('>>>', 1)[1].rsplit('<<<', 1)[0].strip()
+    # Regular expression to match the start and end markers
+    pattern = r'<<<(CODE|FILE|DOC) START: (.+?)>>>(.*?)<<<\1 END: \2>>>'
+    
+    # Find all matches in the response
+    matches = re.finditer(pattern, response, re.DOTALL)
+    
+    for match in matches:
+        block_type = match.group(1)
+        filename = match.group(2)
+        content = match.group(3).strip()
         
         if content:
             if block_type == 'CODE':
@@ -108,8 +104,6 @@ def parse_llm_response(response, language):
                 doc_blocks[filename] = content
             elif block_type == 'FILE':
                 file_blocks[filename] = content
-        
-        response = response[end_index + len(end_marker) + 3:]
     
     return code_blocks, doc_blocks, file_blocks
 

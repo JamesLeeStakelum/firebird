@@ -9,10 +9,17 @@ from llm_interaction import get_llm_response
 import shutil
 import os
 from datetime import datetime
+import configparser
 
 # Logging handler
 import logging
 logger = logging.getLogger(__name__)
+
+# Function to read config
+def get_preferred_llm():
+    config = configparser.ConfigParser()
+    config.read('config.txt')
+    return config['Preferences']['preferred_llm']
 
 def ensure_logs_subfolder_exists():
     logs_folder = os.path.join(os.getcwd(), 'llm_logs')
@@ -21,81 +28,41 @@ def ensure_logs_subfolder_exists():
     return logs_folder
 
 def log_request(logs_folder, request_text):
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    request_file_path = os.path.join(logs_folder, f'{timestamp}_request.txt')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S%f')[:-3]  # Include milliseconds
+    preferred_llm = get_preferred_llm()
+    request_file_path = os.path.join(logs_folder, f'{timestamp}_request_{preferred_llm}.txt')
     
-    with open(request_file_path, 'w', encoding='utf-8') as file:  # Specify utf-8 encoding
+    with open(request_file_path, 'w', encoding='utf-8') as file:
         file.write(request_text)
     
     return request_file_path
 
 def log_response(logs_folder, response_text):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file_path = os.path.join(logs_folder, f"{timestamp}_response.txt")
-
-    with open(log_file_path, 'w', encoding='utf-8') as file:  # Specify utf-8 encoding
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S%f')[:-3]  # Include milliseconds
+    preferred_llm = get_preferred_llm()
+    log_file_path = os.path.join(logs_folder, f'{timestamp}_response_{preferred_llm}.txt')
+    
+    with open(log_file_path, 'w', encoding='utf-8') as file:
         file.write(response_text)
+    
+    return log_file_path
 
 def upload_project_code_and_docs(project_folder, prompt, language):
     code_bundle = ''
 
-    for file in os.listdir(project_folder):
-        if file.endswith(('.py', '.java', '.pl', '.txt')):  # Include relevant file extensions
-            file_path = os.path.join(project_folder, file)
-            if os.path.isfile(file_path):  # Ensure it's a file, not a directory
-                with open(file_path, 'r') as f:
-                    content = f.read()
-                    code_bundle += f"\n\n---\n\nFile: {file}\n\n{content}\n\n"
+    allowed_extensions = ('.txt','.py','.md','.sql','.json','.xml','.csv','.tsv','.pl','.java','.yml','.yaml','.md')
 
+    for root, dirs, files in os.walk(project_folder):
+        for file in files:
+            if file.lower().endswith(allowed_extensions):
+                file_path = os.path.join(root, file)
+                if os.path.isfile(file_path):
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    relative_path = os.path.relpath(file_path, project_folder)
+                    code_bundle += f"\n\n---\n\nFile: {relative_path}\n\n{content}\n\n"
+    
     return code_bundle  # Return the code bundle without sending it to LLM yet
-
-#def save_code_and_specs(project_folder, llm_response, prompt):
-#    retries = 0
-#    max_retries = 3
-#    requirements_found = False
-#    
-#    while retries < max_retries and not requirements_found:
-#        if isinstance(llm_response, str):
-#            # Handle multiple code blocks
-#            code_blocks, doc_blocks = parse_llm_response(llm_response)
-#
-#            for filename, code in code_blocks.items():
-#                code_file_path = os.path.join(project_folder, filename)
-#                with open(code_file_path, 'w') as file:
-#                    file.write(code)
-#                print(f"Saved code to {code_file_path}")
-#
-#            for filename, documentation in doc_blocks.items():
-#                doc_file_path = os.path.join(project_folder, filename)
-#                with open(doc_file_path, 'w') as file:
-#                    file.write(documentation)
-#                print(f"Saved documentation to {doc_file_path}")
-#
-#            if '<<<REQ START>>>' in llm_response and '<<<REQ END>>>' in llm_response:
-#                requirements = llm_response.split('<<<REQ START>>>')[1].split('<<<REQ END>>>')[0].strip()
-#                requirements_file_path = os.path.join(project_folder, 'requirements.txt')
-#                with open(requirements_file_path, 'w') as file:
-#                    file.write(requirements)
-#                requirements_found = True
-#                print(f"Saved requirements to {requirements_file_path}")
-#
-#        retries += 1
-#        if not requirements_found and retries < max_retries:
-#            print("Requirements not found, retrying...")
-#            llm_response = upload_project_code_and_docs(project_folder, prompt)
-#    
-#    if not requirements_found:
-#        raise ValueError("Failed to save requirements after multiple retries.")
-
-#def read_files_from_subfolder(subfolder_name):
-#    """Reads all files in the subfolder into memory as strings."""
-#    file_contents = {}
-#    for root, dirs, files in os.walk(subfolder_name):
-#        for file in files:
-#            file_path = os.path.join(root, file)
-#            with open(file_path, 'r') as f:
-#                file_contents[file] = f.read()
-#    return file_contents
 
 def create_code_history_backup(project_folder):
     """Create a backup of all files in the project folder before making any changes."""
