@@ -20,11 +20,11 @@ This project is open-source, allowing others to modify and distribute the softwa
    - Set logging preferences, including whether to log LLM responses and the location of log files.
 4. Set your LLM API keys in the environment variables. Setting API keys in environment variables is recommended for security reasons, as it helps to keep sensitive information out of the source code. Only set the keys for the LLMs you intend to use. For example:
     ```
-    set OPENAI_API_KEY="your-gemini-api-key"
-    set GEMINI_API_KEY="your-gemini-api-key"
-    set ANTHROPIC_API_KEY="your-anthropic-api-key"
-    set GROQ_API_KEY="your-groq-api-key"
-    set PERPLEXITY_API_KEY="your-perplexity-api-key"
+    set OPENAI_API_KEY=your-gemini-api-key
+    set GEMINI_API_KEY=your-gemini-api-key
+    set ANTHROPIC_API_KEY=your-anthropic-api-key
+    set GROQ_API_KEY=your-groq-api-key
+    set PERPLEXITY_API_KEY=your-perplexity-api-key
     ```
 
 ## Usage
