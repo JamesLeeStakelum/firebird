@@ -29,22 +29,7 @@ def read_config(file_path: str) -> FlexibleConfigParser:
     return config
 
 def get_llm_response(prompt: str, language: str, include_markers: bool = True, max_retries: int = 3) -> Optional[str]:
-    """Generate response from LLM, optionally requesting code, documentation, and file markers."""
-    if include_markers:
 
-        # Determine the file extension based on the language
-        extension = {
-            'python': 'py',
-            'java': 'java',
-            'perl': 'pl'
-        }.get(language, 'txt')  # Default to .txt if language is unknown
-
-        prompt += (
-            f"\n\nPlease generate the project code, documentation, and any other required text-based files. "
-            f"For code, mark the start and end using the format `<<<CODE START: filename.{extension}>>>` and `<<<CODE END: filename.{extension}>>>`. "
-            f"For documentation, use `<<<DOC START: filename.{extension}>>>` and `<<<DOC END: filename.{extension}>>>`. "
-            f"For other text-based files (e.g., .txt, .csv, .json), use `<<<FILE START: filename.extension>>>` and `<<<FILE END: filename.extension>>>`."
-        )
     return get_response_with_retry(prompt, include_markers, max_retries)
 
 def get_response_with_retry(prompt: str, check_for_markers: bool = True, max_retries: int = 3) -> Optional[str]:

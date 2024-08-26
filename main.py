@@ -79,15 +79,47 @@ def create_app_subfolder(folder_name):
         print(f"Created subfolder: {folder_name}")
     return folder_name
 
+def clean_content(content):
+    """
+    Clean the content by removing surrounding and internal backticks,
+    as well as language specifiers.
+    """
+    lines = content.split('\n')
+    cleaned_lines = []
+    skip_next = False
 
+    for line in lines:
+        if skip_next:
+            skip_next = False
+            continue
+        
+        # Remove lines that are just backticks
+        if line.strip() == '```' or line.strip() == '`':
+            continue
+        
+        # Remove language specifier lines
+        if line.strip().startswith('```'):
+            skip_next = True
+            continue
+        
+        # Remove leading and trailing backticks from each line
+        line = line.strip('`')
+        
+        cleaned_lines.append(line)
+
+    # Remove any trailing empty lines
+    while cleaned_lines and not cleaned_lines[-1].strip():
+        cleaned_lines.pop()
+
+    return '\n'.join(cleaned_lines)
 
 def parse_llm_response(response, language):
     code_blocks = {}
     doc_blocks = {}
     file_blocks = {}
     
-    # Regular expression to match the start and end markers
-    pattern = r'<<<(CODE|FILE|DOC) START: (.+?)>>>(.*?)<<<\1 END: \2>>>'
+    # Regular expression to match the start and end markers, including potential surrounding backticks
+    pattern = r'`?<<<(CODE|FILE|DOC) START: (.+?)>>>`?\s*(.*?)\s*`?<<<\1 END: \2>>>`?'
     
     # Find all matches in the response
     matches = re.finditer(pattern, response, re.DOTALL)
@@ -95,17 +127,21 @@ def parse_llm_response(response, language):
     for match in matches:
         block_type = match.group(1)
         filename = match.group(2)
-        content = match.group(3).strip()
+        content = match.group(3)
         
         if content:
+            # Clean the content
+            cleaned_content = clean_content(content)
+            
             if block_type == 'CODE':
-                code_blocks[filename] = content
+                code_blocks[filename] = cleaned_content
             elif block_type == 'DOC':
-                doc_blocks[filename] = content
+                doc_blocks[filename] = cleaned_content
             elif block_type == 'FILE':
-                file_blocks[filename] = content
+                file_blocks[filename] = cleaned_content
     
     return code_blocks, doc_blocks, file_blocks
+
 
 def generate_code_for_project(app_folder, prompt, language, main_file):
 
@@ -161,15 +197,24 @@ def generate_code_for_project(app_folder, prompt, language, main_file):
     # Request LLM to generate the code
     while True:
         code_prompt = (
+            f"You are an expert professional computer programmer with experience in the {language} language. You follow best practices.\n"
             f"Thank you for confirming your understanding.\n"
             f"Now, please generate the code.\n"
             f"Here are some guidelines for the program code:\n"
             f"Code must be in the {language} programming language.\n"
             f"The main script must be named '{main_file}'. \n"
             f"When making changes to existing code, always show the complete code; never stub out sections.\n"
-            f"For file encodings, I prefer UTF8. Avoid Unicode.\n"
+            f"Regarding file encodings, I prefer ASCII, although UTF8 is okay if necessary to have some special characters. But always avoid Unicode.\n"
             f"Include comments in the code. Use the # symbol to preceed single-line comments. Use docstrings for multi-line comments\n"
+            f"Comments are extremely helpful. The assist the LLM to understand the purpose of the code when I ask the LLM to review the code to either make improvements or fix problems. I like having comments on three levels: 1. for each module, describing the purpose of the module; 2. for each function, describing the purpose of the function; 3. for each operation inside a function, which is normally ever few lines of code, describing the operation.\n\n"
+            f"Don't include backticks in code or other files. Backticks cause serious problems.\n"
             f"When making changes to existing code, always reflect on all aspects of the code. Consider relationships between functions, and parameters, and external files.\n"
+            f"#########################\n"
+            # Prompt regarding indicators of file boundaries
+            f"\n\nPlease generate the project code, documentation, and any other required text-based files, use markers in your response.\n"
+            f"For code, mark the start and end using the format <<<CODE START: filename.{extension}>>> and <<<CODE END: filename.{extension}>>>. "
+            f"For documentation, use <<<DOC START: filename.md>>> and <<<DOC END: filename.md>>>`. "
+            f"For other text-based files (e.g., .txt, .csv, .json, .xml, .sql, .tsv, et cetera), use <<<FILE START: filename.extension>>> and <<<FILE END: filename.extension>>>."
             f"#########################\n"
             f"Here is the specific task assignment:\n"
             f"{prompt}\n"
