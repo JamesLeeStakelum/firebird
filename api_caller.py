@@ -20,8 +20,6 @@ INITIAL_DELAY = 1
 BACKOFF_FACTOR = 2
 
 # API URLs and Versions
-ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
-ANTHROPIC_API_VERSION = "2023-06-01"
 PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions"
 
 # Read config.txt
@@ -39,16 +37,22 @@ elif preferred_llm == 'groq':
 # Note: anthropic and perplexity don't require special imports as they use requests
 
 def send_to_llm(prompt, api_key, model, llm_provider):
+
     if llm_provider == "openai":
         return send_to_openai(prompt, api_key, model)
+
     elif llm_provider == "gemini":
         return send_to_gemini(prompt, api_key, model)
+
     elif llm_provider == "anthropic":
         return send_to_anthropic(prompt, api_key, model)
+
     elif llm_provider == "perplexity":
         return send_to_perplexity(prompt, api_key, model)
+
     elif llm_provider == "groq":
         return send_to_groq(prompt, api_key, model)
+
     else:
         raise ValueError(f"Unsupported LLM provider: {llm_provider}")
 
@@ -67,21 +71,22 @@ def send_to_gemini(prompt, api_key, model):
     return response.text
 
 def send_to_anthropic(prompt, api_key, model):
+    api_url = "https://api.anthropic.com/v1/messages"
     headers = {
         "Content-Type": "application/json",
         "x-api-key": api_key,
-        "anthropic-version": ANTHROPIC_API_VERSION
+        "anthropic-version": "2023-06-01"  # Or the latest version you prefer
     }
     data = {
         "model": model,
-        "max_tokens": 4096,
+        "max_tokens": 4096,  # Adjust as needed
         "messages": [{"role": "user", "content": prompt}]
     }
-    response = requests.post(ANTHROPIC_API_URL, headers=headers, json=data)
-    response.raise_for_status()
+    response = requests.post(api_url, headers=headers, json=data)
+    response.raise_for_status()  # Check for HTTP errors
     result = response.json()
-    return result['content'][0]['text'].strip()
-
+    response_text = result['content'][0]['text'].strip()
+    return response_text
 
 def send_to_groq(prompt, api_key, model):
     client = Groq(api_key=api_key)

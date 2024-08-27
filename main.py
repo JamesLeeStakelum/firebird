@@ -194,39 +194,101 @@ def generate_code_for_project(app_folder, prompt, language, main_file):
         'perl': 'pl'
     }.get(language, 'txt')
 
+    # Request LLM to create a detailed architecture document
+    architecture_prompt = ""
+    architecture_prompt += f"#########################\n"
+    architecture_prompt += f"We are not yet ready to perform the coding task. But, for your awareness, here is the task that was requested:\n"
+    architecture_prompt += f"{prompt}\n"
+    architecture_prompt += f"#########################\n\n"
+    architecture_prompt += f"As a reminder, here is how you described the current task assignment, in your own words, in our previous chat response in a conversation we are having:\n"
+    architecture_prompt += f"{llm_explanation}\n"
+    architecture_prompt += f"#########################\n\n"
+    architecture_prompt += f"Before any actual coding is performed, first, it is necessary to create a highly detailed techical architecture document that describes a technical solution for accomplishing the task.\n"
+    architecture_prompt += f"So, based on the requested task, please generate a highly detailed technical architecture document.\n"
+    architecture_prompt += f"The document will contain the following:\n"
+    architecture_prompt += f"For all code modules, the name of the module, the purpose of the module, and list of all functions inside the module.\n"
+    architecture_prompt += f"For all functions, the name of the function, the purpose of the function, and the parameters for the function, what the function returns, and a step-by-step description of what the function does.\n"
+    architecture_prompt += f"List all function-to-function relationships that show which functions call what.\n"
+    architecture_prompt += f"List any supporting files.\n"
+    architecture_prompt += f"Save the technical archicture document in a file named technical_architecture.txt\n"
+    architecture_prompt += f""#########################\n"
+
+    # Prompt regarding indicators of file boundaries
+    architecture_prompt += f"When generating the technical architecture file, use these markers in your response to indicate beginning and end of the file contents:\n"
+    architecture_prompt += f"<<<FILE START: technical_architecture.txt>>> and <<<FILE END: technical_architecture.txt>>>."
+    architecture_prompt += f"#########################\n\n"
+
+    # Call LLM and request architecture document
+    log_request(logs_folder, architecture_prompt)
+    response = get_llm_response(architecture_prompt, language, include_markers=False)
+    log_response(logs_folder, response)
+    architecture_text = response.strip()
+
+    # Extract architecture document from the LLM response, and write to file
+    code_blocks, doc_blocks, file_blocks = parse_llm_response(architecture_text, language)
+    if file_blocks:
+        for filename, file_content in file_blocks.items():
+            file_path = os.path.join(app_folder, filename)
+            with open(file_path, 'w', encoding='utf-8') as file:
+                file.write(file_content)
+            print(f"Saved file to {file_path}")  # Debugging line
+
+            architecture_plan = ''
+            if (filename == 'technical_architecture.txt'): architecture_plan = file_content
+
+
     # Request LLM to generate the code
     while True:
-        code_prompt = (
-            f"You are an expert professional computer programmer with experience in the {language} language. You follow best practices.\n"
-            f"Thank you for confirming your understanding.\n"
-            f"Now, please generate the code.\n"
-            f"Here are some guidelines for the program code:\n"
-            f"Code must be in the {language} programming language.\n"
-            f"The main script must be named '{main_file}'. \n"
-            f"When making changes to existing code, always show the complete code; never stub out sections.\n"
-            f"Regarding file encodings, I prefer ASCII, although UTF8 is okay if necessary to have some special characters. But always avoid Unicode.\n"
-            f"Include comments in the code. Use the # symbol to preceed single-line comments. Use docstrings for multi-line comments\n"
-            f"Comments are extremely helpful. The assist the LLM to understand the purpose of the code when I ask the LLM to review the code to either make improvements or fix problems. I like having comments on three levels: 1. for each module, describing the purpose of the module; 2. for each function, describing the purpose of the function; 3. for each operation inside a function, which is normally ever few lines of code, describing the operation.\n\n"
-            f"Don't include backticks in code or other files. Backticks cause serious problems.\n"
-            f"When making changes to existing code, always reflect on all aspects of the code. Consider relationships between functions, and parameters, and external files.\n"
-            f"#########################\n"
-            # Prompt regarding indicators of file boundaries
-            f"\n\nPlease generate the project code, documentation, and any other required text-based files, use markers in your response.\n"
-            f"For code, mark the start and end using the format <<<CODE START: filename.{extension}>>> and <<<CODE END: filename.{extension}>>>. "
-            f"For documentation, use <<<DOC START: filename.md>>> and <<<DOC END: filename.md>>>`. "
-            f"For other text-based files (e.g., .txt, .csv, .json, .xml, .sql, .tsv, et cetera), use <<<FILE START: filename.extension>>> and <<<FILE END: filename.extension>>>."
-            f"#########################\n"
-            f"Here is the specific task assignment:\n"
-            f"{prompt}\n"
-            f"#########################\n\n"
-            f"As a reminder, here is how you described the current task assignment, in your own words, in our previous chat response in a conversation we are having:\n"
-            f"{llm_explanation}\n"
-            f"#########################\n\n"
-            f"Any changes you make must be made to the existing code files and any supporting files as the starting baseline for subsequent changes. "
-            f"Here is all the source code and all supporting files as they currently exists:\n"
-            f"{code_bundle}\n"
-            f"#########################\n"
-        )
+        code_prompt = "";
+
+        # Role prompt
+        code_prompt += f"You are an expert professional computer programmer with experience in the {language} language. You follow best practices.\n"
+
+        code_prompt += f"Thank you for confirming your understanding.\n"
+        code_prompt += f"Now, please generate the code.\n"
+        code_prompt += f"Here are some guidelines for the program code:\n"
+        code_prompt += f"Code must be in the {language} programming language.\n"
+        code_prompt += f"The main script must be named '{main_file}'. \n"
+        code_prompt += f"When making changes to existing code, always show the complete code; never stub out sections.\n"
+        code_prompt += f"Regarding file encodings, I prefer ASCII, although UTF8 is okay if necessary to have some special characters. But always avoid Unicode.\n"
+
+        # Request for comments in code
+        code_prompt += f"Include comments in the code. Use the # symbol to preceed single-line comments. Use docstrings for multi-line comments\n"
+        code_prompt += f"Comments are extremely helpful. The assist the LLM to understand the purpose of the code when I ask the LLM to review the code to either make improvements or fix problems. I like having comments on three levels: 1. for each module, describing the purpose of the module; 2. for each function, describing the purpose of the function; 3. for each operation inside a function, which is normally ever few lines of code, describing the operation.\n\n"
+
+        code_prompt += f"Don't include backticks in code or other files. Backticks cause serious problems.\n"
+        code_prompt += f"When making changes to existing code, always reflect on all aspects of the code. Consider relationships between functions, and parameters, and external files.\n"
+        code_prompt += f"#########################\n"
+
+        # Prompt regarding indicators of file boundaries
+        code_prompt += f"\n\nPlease generate the project code, documentation, and any other required text-based files, use markers in your response.\n"
+        code_prompt += f"For code, mark the start and end using the format <<<CODE START: filename.{extension}>>> and <<<CODE END: filename.{extension}>>>. "
+        code_prompt += f"For documentation, use <<<DOC START: filename.md>>> and <<<DOC END: filename.md>>>`. "
+        code_prompt += f"For other text-based files (e.g., .txt, .csv, .json, .xml, .sql, .tsv, et cetera), use <<<FILE START: filename.extension>>> and <<<FILE END: filename.extension>>>."
+        code_prompt += f"#########################\n\n"
+
+        # Inform LLM to use existing code as baseline for any subsequent code changes
+        code_prompt += f"Any changes you make must be made to the existing code files and any supporting files as the starting baseline for subsequent changes. "
+        code_prompt += f"Here is all the source code and all supporting files as they currently exists:\n"
+        code_prompt += f"{code_bundle}\n"
+        code_prompt += f"#########################\n"
+
+        # Request for requirements.txt, if Python
+        if (language == 'python'):
+           code_prompt += "If libraries are needed that are not part of the standard Python libraries, please create a requirements.txt file, using the pip command with syntax for installing the libraries.\n"
+
+        # Task assignment
+        code_prompt += f"#########################\n"
+        code_prompt += f"Here is the specific task assignment:\n"
+        code_prompt += f"{prompt}\n"
+        code_prompt += f"#########################\n\n"
+        code_prompt += f"As a reminder, here is how you described the current task assignment, in your own words, in our previous chat response in a conversation we are having:\n"
+        code_prompt += f"{llm_explanation}\n"
+
+        # Technical architecutre
+        code_prompt += f"Here is the detailed technical architecture for this task:\n"
+        code_prompt += f"architecture_plan\n"
+        code_prompt += f"#########################\n\n"
 
         log_request(logs_folder, code_prompt)
 
