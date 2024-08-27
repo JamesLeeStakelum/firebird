@@ -153,6 +153,7 @@ def generate_code_for_project(app_folder, prompt, language, main_file):
     llm_explanation = ""
     while True:
         understanding_prompt = (
+            f"**Specific task assignment**\n"
             f"Please summarize your understanding of the task described below.\n\n"
             f"Task:\n{prompt}\n\n"
             f"#########################\n\n"
@@ -203,6 +204,27 @@ def generate_code_for_project(app_folder, prompt, language, main_file):
     architecture_prompt += f"As a reminder, here is how you described the current task assignment, in your own words, in our previous chat response in a conversation we are having:\n"
     architecture_prompt += f"{llm_explanation}\n"
     architecture_prompt += f"#########################\n\n"
+
+    # Request LLM to use highly decomposed coding
+    architecture_prompt += f"**Coding Style Preference: Modular and Highly Decomposed**\n"
+    architecture_prompt += f"\n"
+    architecture_prompt += f"I prefer a coding style that breaks down tasks into very small, focused functions. Here s what I expect:\n"
+    architecture_prompt += f"\n"
+    architecture_prompt += f"- **Single-Purpose Functions:** Each function should perform only one task. If a task involves multiple steps, break it down into separate functions, each handling one step.\n"
+    architecture_prompt += f"- **Modularity:** Functions should be small, self-contained, and easy to understand.\n"
+    architecture_prompt += f"- **Clear Structure:** Avoid long, complex functions. Instead, use sequences of short functions to accomplish complex tasks.\n"
+    architecture_prompt += f"\n"
+    architecture_prompt += f"The benefits of this approach include:\n"
+    architecture_prompt += f"- **Fewer Errors:** Smaller functions are easier for the LLM to generate correctly.\n"
+    architecture_prompt += f"- **Simpler Debugging:** Isolated functions make it easier to find and fix issues.\n"
+    architecture_prompt += f"- **Better Documentation:** Clear, focused functions are easier to describe and understand.\n"
+    architecture_prompt += f"- **Flexible Code:** Modular code is easier to modify and extend.\n"
+    architecture_prompt += f"\n"
+    architecture_prompt += f"Please ensure the code you generate follows this highly modular and functionally decomposed approach.\n"
+    architecture_prompt += f"#########################\n"
+
+    # Request for technical architecture document
+    architecture_prompt += f"**Architectural document**\n"
     architecture_prompt += f"Before any actual coding is performed, first, it is necessary to create a highly detailed techical architecture document that describes a technical solution for accomplishing the task.\n"
     architecture_prompt += f"So, based on the requested task, please generate a highly detailed technical architecture document.\n"
     architecture_prompt += f"The document will contain the following:\n"
@@ -210,13 +232,20 @@ def generate_code_for_project(app_folder, prompt, language, main_file):
     architecture_prompt += f"For all functions, the name of the function, the purpose of the function, and the parameters for the function, what the function returns, and a step-by-step description of what the function does.\n"
     architecture_prompt += f"List all function-to-function relationships that show which functions call what.\n"
     architecture_prompt += f"List any supporting files.\n"
-    architecture_prompt += f"Save the technical archicture document in a file named technical_architecture.txt\n"
-    architecture_prompt += f""#########################\n"
+    architecture_prompt += f"Save the technical architecture document in a file named technical_architecture.txt\n"
+    architecture_prompt += f"\n"
+    architecture_prompt += f"When designing the technical architecture, please remember that it is intended for a highly modular and functionally decomposed approach as previously mentioned.\n"
+    architecture_prompt += f"#########################\n\n"
 
     # Prompt regarding indicators of file boundaries
+    architecture_prompt += f"**File delimiters**\n"
     architecture_prompt += f"When generating the technical architecture file, use these markers in your response to indicate beginning and end of the file contents:\n"
-    architecture_prompt += f"<<<FILE START: technical_architecture.txt>>> and <<<FILE END: technical_architecture.txt>>>."
+    architecture_prompt += f"<<<FILE START: technical_architecture.txt>>> and <<<FILE END: technical_architecture.txt>>>.\n"
     architecture_prompt += f"#########################\n\n"
+
+    # Clarify again the specific current task
+    architecture_prompt += f"**Specific task assignment**\n"
+    architecture_prompt += f"So, what I need you to do now is create the technical architecture document.\n"
 
     # Call LLM and request architecture document
     log_request(logs_folder, architecture_prompt)
@@ -252,7 +281,26 @@ def generate_code_for_project(app_folder, prompt, language, main_file):
         code_prompt += f"When making changes to existing code, always show the complete code; never stub out sections.\n"
         code_prompt += f"Regarding file encodings, I prefer ASCII, although UTF8 is okay if necessary to have some special characters. But always avoid Unicode.\n"
 
+        # Request LLM to use highly decomposed coding
+        code_prompt += f"**Coding Style Preference: Modular and Highly Decomposed**\n"
+        code_prompt += f"\n"
+        code_prompt += f"I prefer a coding style that breaks down tasks into very small, focused functions. Here s what I expect:\n"
+        code_prompt += f"\n"
+        code_prompt += f"- **Single-Purpose Functions:** Each function should perform only one task. If a task involves multiple steps, break it down into separate functions, each handling one step.\n"
+        code_prompt += f"- **Modularity:** Functions should be small, self-contained, and easy to understand.\n"
+        code_prompt += f"- **Clear Structure:** Avoid long, complex functions. Instead, use sequences of short functions to accomplish complex tasks.\n"
+        code_prompt += f"\n"
+        code_prompt += f"The benefits of this approach include:\n"
+        code_prompt += f"- **Fewer Errors:** Smaller functions are easier for the LLM to generate correctly.\n"
+        code_prompt += f"- **Simpler Debugging:** Isolated functions make it easier to find and fix issues.\n"
+        code_prompt += f"- **Better Documentation:** Clear, focused functions are easier to describe and understand.\n"
+        code_prompt += f"- **Flexible Code:** Modular code is easier to modify and extend.\n"
+        code_prompt += f"\n"
+        code_prompt += f"Please ensure the code you generate follows this highly modular and functionally decomposed approach.\n"
+        code_prompt += f"#########################\n"
+
         # Request for comments in code
+        code_prompt += f"**Comments in the code**\n"
         code_prompt += f"Include comments in the code. Use the # symbol to preceed single-line comments. Use docstrings for multi-line comments\n"
         code_prompt += f"Comments are extremely helpful. The assist the LLM to understand the purpose of the code when I ask the LLM to review the code to either make improvements or fix problems. I like having comments on three levels: 1. for each module, describing the purpose of the module; 2. for each function, describing the purpose of the function; 3. for each operation inside a function, which is normally ever few lines of code, describing the operation.\n\n"
 
@@ -261,7 +309,8 @@ def generate_code_for_project(app_folder, prompt, language, main_file):
         code_prompt += f"#########################\n"
 
         # Prompt regarding indicators of file boundaries
-        code_prompt += f"\n\nPlease generate the project code, documentation, and any other required text-based files, use markers in your response.\n"
+        code_prompt += f"**File delimiters in your response**\n"
+        code_prompt += f"\n\nPlease generate the project code, documentation, and any other required text-based files, using markers in your response thusly:\n"
         code_prompt += f"For code, mark the start and end using the format <<<CODE START: filename.{extension}>>> and <<<CODE END: filename.{extension}>>>. "
         code_prompt += f"For documentation, use <<<DOC START: filename.md>>> and <<<DOC END: filename.md>>>`. "
         code_prompt += f"For other text-based files (e.g., .txt, .csv, .json, .xml, .sql, .tsv, et cetera), use <<<FILE START: filename.extension>>> and <<<FILE END: filename.extension>>>."
@@ -279,15 +328,16 @@ def generate_code_for_project(app_folder, prompt, language, main_file):
 
         # Task assignment
         code_prompt += f"#########################\n"
+        code_prompt += f"**Specific task assignment**\n"
         code_prompt += f"Here is the specific task assignment:\n"
         code_prompt += f"{prompt}\n"
         code_prompt += f"#########################\n\n"
         code_prompt += f"As a reminder, here is how you described the current task assignment, in your own words, in our previous chat response in a conversation we are having:\n"
         code_prompt += f"{llm_explanation}\n"
 
-        # Technical architecutre
-        code_prompt += f"Here is the detailed technical architecture for this task:\n"
-        code_prompt += f"architecture_plan\n"
+        # Technical architecture
+        code_prompt += f"Here is the detailed technical architecture for the code solution:\n"
+        code_prompt += f"{architecture_plan}\n"
         code_prompt += f"#########################\n\n"
 
         log_request(logs_folder, code_prompt)
