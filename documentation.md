@@ -54,22 +54,10 @@ This project is open-source, allowing others to modify and distribute the softwa
 - **Key Functions**:
   - `main()`: Initiates the process by reading `tasks.txt`, sending requests to the LLM, and coordinating the overall flow. It handles both initial code generation and iterative updates.
 
-### `project_manager.py`
-- **Description**: Handles project file management, including saving generated code and supporting files into the correct subfolder.
-- **Key Functions**:
-  - `create_project_directory(project_name)`: Creates a directory for the project if it doesn't exist.
-  - `save_code_to_files(code_dict, project_name)`: Saves the generated code and supporting files to the designated subfolder.
-
 ### `api_caller.py`
 - **Description**: Manages API calls to the LLM.
 - **Key Functions**:
   - `call_llm(prompt)`: Sends a request to the LLM and returns the response. It also handles retries and error management based on the preferences set in `config.txt`.
-
-### `llm_interaction.py`
-- **Description**: Handles interactions with the LLM, including processing responses and extracting code or documentation.
-- **Key Functions**:
-  - `generate_code(task_description)`: Orchestrates the process of generating code based on the task description.
-  - `generate_documentation(code, project_name)`: Generates documentation based on the generated code.
 
 ### Configuration Files
 - `project_params.txt`: Contains the project subfolder name and programming language.
